@@ -1,0 +1,5 @@
+[windows:vars]
+ ansible_connection=winrm
+ ansible_user=vagrant ## the windows username for ansible to communicate
+ ansible_password=vangrant ## the windows password for ansible to communicate
+ ansible_winrm_server_cert_validation=ignore ## ignore certificate validation because we'll just be using a self-signed certificate that comes with Ansible

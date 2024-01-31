@@ -1,0 +1,81 @@
+---
+ - hosts: adwin
+   gather_facts: false
+   vars:
+     ansible_connection: winrm
+     ansible_winrm_server_cert_validation: ignore
+     ansible_command_timeout: 1000
+     ansible_connect_timeout: 1000
+   tasks:
+     - name: Create local administrator user.
+       win_user:
+         name: admlab
+         password: SenhaSegura@123
+         groups: Administrators
+     - name: Installation of Active Directory Domain Services (AD DS), DNS, and DHCP
+       win_feature:
+         name: AD-Domain-Services,DNS,DHCP
+         state: present
+     - name: Create new domain in a new forest on the target host and reboot
+       microsoft.ad.domain:
+         dns_domain_name: lab.local
+         safe_mode_password: SenhaSegura@123
+         reboot: true
+###### Adicionando novo usuário de Dominio
+     - name: Ensure user bob is created and use custom credentials to create the user
+       community.windows.win_domain_user:
+         name: Suporte
+         firstname: IT
+         surname: Suporte
+         password: SenhaSegura@123
+         groups:
+           - Domain Admins
+         state: present
+         domain_username: lab.local\admlab
+         domain_password: SenhaSegura@123
+         domain_server: adwin.lab.local      
+###### Setting Up DNS Server
+     - name: Install DNS server feature.
+       win_feature:
+         name: DNS,RSAT-DNS-Server
+         state: present
+         
+     - name: Ensure primary zone is present
+       community.windows.win_dns_zone:
+         dns_servers: 192.168.100.10
+         dynamic_update: none
+         forwarder_timeout: 0
+         name: lab.local
+         replication: domain
+         type: primary
+         state: present
+         
+ - hosts: winclient
+   gather_facts: false
+   tasks:
+     - name: Set a single address on the adapter named Ethernet
+       ansible.windows.win_dns_client:
+         adapter_names: "Ethernet 2"
+         dns_servers: 192.168.100.10
+         
+     - name: Join Machine to Domain 
+       ansible.windows.win_domain_membership:
+         dns_domain_name: lab.local
+         #hostname: clientwin11
+         domain_admin_user: lab.local\admlab
+         domain_admin_password: SenhaSegura@123
+         #domain_ou_path: "CN=Computers,DC=lab,DC=local"
+         state: domain
+         register: domain_state
+     - name: Reboot 
+       ansible.windows.win_reboot:
+         reboot_timeout: 120
+
+
+
+
+
+
+
+           
+
